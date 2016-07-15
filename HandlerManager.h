@@ -17,37 +17,36 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ********************************************************************************/
 
-#ifndef WAV2MP3_ENCODER_H
-#define WAV2MP3_ENCODER_H
+#ifndef WAV2MP3_RESOURCEMANAGER_H
+#define WAV2MP3_RESOURCEMANAGER_H
 
-#include <string>
-#include <vector>
+#include <functional>
 
-namespace wav2mp3 {
+template <typename H, class F>
+class HandlerManager {
+public:
+  HandlerManager(H handler, F close_function):
+      handler_(handler),
+      close_function_(close_function) {
 
-  class Encoder {
-    static const size_t BUFFER_SIZE {8192};
-  public:
-    enum class CodecResult {
-      CR_OK,
-      CR_IF_OPEN,
-      CR_OF_OPEN,
-      CR_LAME_INIT,
-      CR_FILE_NAME,
-      CR_NOT_WAVE
-    };
+  }
 
-    static CodecResult encode(const std::string& wav_filename);
-    static void encode(const std::vector<std::string>& wav_filenames);
+  H& handler() {
+    return handler_;
+  }
 
-  private:
-    inline static bool ends_with(const std::string& str, const std::string& ending) {
-      if (ending.size() > str.size()) return false;
-      return std::equal(ending.rbegin(), ending.rend(), str.rbegin());
-    }
-  };
+  bool handler_ok() const {
+    return handler_ != nullptr;
+  }
 
-}
+  ~HandlerManager() {
+    std::bind(close_function_, handler_);
+  }
+
+private:
+  H handler_;
+  F close_function_;
+};
 
 
-#endif //WAV2MP3_ENCODER_H
+#endif //WAV2MP3_RESOURCEMANAGER_H

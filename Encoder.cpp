@@ -23,46 +23,61 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <iostream>
 #include <lame/lame.h>
 
+#include "HandlerManager.h"
+
 namespace wav2mp3 {
 
-  void Encoder::encode(const std::vector<std::string>& wav_filenames) {
-    for (const auto& f : wav_filenames) {
-      std::cout << f << std::setw(30);
+  void Encoder::encode(const std::vector<std::string> &wav_filenames) {
+    for (const auto &f : wav_filenames) {
+      std::cout << f;
       auto status = encode(f);
-      std::cout << (status ? "OK" : "FAULT") << std::endl;
+      std::cout << std::setw(30) << (status == CodecResult::CR_OK ? "OK" : "FAULT") << std::endl;
     }
   }
 
 
-  bool Encoder::encode(const std::string& wav_filename) {
+  Encoder::CodecResult Encoder::encode(const std::string &wav_filename) {
+
+    if (!ends_with(wav_filename, ".wav")) {
+      return CodecResult::CR_FILE_NAME;
+    }
 
     int bytes_read {};
     int bytes_to_write {};
 
-    FILE *wav_file = fopen(wav_filename.c_str(), "rb");
-    FILE *mp3_file = fopen((wav_filename.substr(0, wav_filename.size() - 3) + "mp3").c_str(), "wb");
+    HandlerManager<FILE*, int (*)(FILE *)> wav_file(fopen(wav_filename.c_str(), "rb"), fclose);
+    if (!wav_file.handler_ok()) {
+      return CodecResult::CR_IF_OPEN;
+    }
+
+    HandlerManager<FILE*, int (*)(FILE *)> mp3_file(
+        fopen((wav_filename.substr(0, wav_filename.size() - 3) + "mp3").c_str(), "wb"), fclose);
+    if (!mp3_file.handler_ok()) {
+      return CodecResult::CR_OF_OPEN;
+    }
+
+    HandlerManager<lame_t, int (*)(lame_t)> lame(lame_init(), lame_close);
+    if (!lame.handler_ok()) {
+      return CodecResult::CR_LAME_INIT;
+    }
 
     int16_t wav_buffer[BUFFER_SIZE * 2];
     uint8_t mp3_buffer[BUFFER_SIZE];
 
-    lame_t lame = lame_init();
-    lame_init_params(lame);
+    lame_init_params(lame.handler());
 
     do {
-      bytes_read = fread(wav_buffer, 2 * sizeof(int16_t), BUFFER_SIZE, wav_file);
+      bytes_read = fread(wav_buffer, 2 * sizeof(int16_t), BUFFER_SIZE, wav_file.handler());
       if (bytes_read == 0) {
-        bytes_to_write = lame_encode_flush(lame, mp3_buffer, BUFFER_SIZE);
+        bytes_to_write = lame_encode_flush(lame.handler(), mp3_buffer, BUFFER_SIZE);
       }
       else {
-        bytes_to_write = lame_encode_buffer_interleaved(lame, wav_buffer, bytes_read, mp3_buffer, BUFFER_SIZE);
+        bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, bytes_read, mp3_buffer,
+                                                        BUFFER_SIZE);
       }
-      fwrite(mp3_buffer, bytes_to_write, 1, mp3_file);
+      fwrite(mp3_buffer, bytes_to_write, 1, mp3_file.handler());
     } while (bytes_read != 0);
 
-    lame_close(lame);
-    fclose(mp3_file);
-    fclose(wav_file);
-
-    return true;
+    return CodecResult::CR_OK;
   }
 }
