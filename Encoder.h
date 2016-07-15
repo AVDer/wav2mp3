@@ -17,24 +17,22 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ********************************************************************************/
 
-#include <iostream>
+#ifndef WAV2MP3_ENCODER_H
+#define WAV2MP3_ENCODER_H
+
+#include <string>
 #include <vector>
 
-#include "Encoder.h"
+namespace wav2mp3 {
 
-int main(int argc, char **argv) {
+  class Encoder {
+    static const size_t BUFFER_SIZE {8192};
+  public:
+    static bool encode(const std::string& wav_filename);
+    static void encode(const std::vector<std::string>& wav_filenames);
+  };
 
-  if (argc < 2) {
-    std::cerr << "Usage: wav2mp3 file [files]\n,where file and each of files are wav ones)" << std::endl;
-    return 1;
-  }
-
-  std::vector<std::string> filenames;
-  for (uint32_t i = 1; i < argc; ++i) {
-    filenames.emplace_back(argv[i]);
-  }
-
-  wav2mp3::Encoder::encode(filenames);
-
-  return 0;
 }
+
+
+#endif //WAV2MP3_ENCODER_H

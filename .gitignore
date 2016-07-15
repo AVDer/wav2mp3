@@ -27,3 +27,11 @@
 *.exe
 *.out
 *.app
+
+# Media files
+*.wav
+*.mp3
+
+# Project files
+.idea
+Debug
