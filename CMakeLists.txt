@@ -11,7 +11,7 @@ endif( NOT LAME_FOUND )
 include_directories(${LAME_INCLUDE_DIRS})
 add_definitions(${LAME_DEFINITIONS})
 
-set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h)
+set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h WAVHeader.h WAVHeader.cpp)
 
 add_executable(wav2mp3 ${SOURCE_FILES})
 target_link_libraries(wav2mp3 ${LAME_LIBRARIES})
