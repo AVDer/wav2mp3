@@ -23,25 +23,54 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string>
 #include <vector>
 
+#include "WAVHeader.h"
+
 namespace wav2mp3 {
 
+
+  //!  Encoder class
+  /*!
+       Class provides functions for basic WAV file parsing and it's encoding to MP3 format with pre-defined quality
+  */
   class Encoder {
-    static const size_t BUFFER_SIZE {8192};
+    static const size_t BUFFER_SIZE{8192};
   public:
+
+    //! Errors codes
     enum class CodecResult {
-      CR_OK,
-      CR_IF_OPEN,
-      CR_OF_OPEN,
-      CR_LAME_INIT,
-      CR_FILE_NAME,
-      CR_NOT_WAVE
+      CR_OK,            /*!< No errors in encoding process */
+      CR_IF_OPEN,       /*!< Error while opening WAV file */
+      CR_OF_OPEN,       /*!< MP3 file can't be created */
+      CR_LAME_INIT,     /*!< Lame handler can't be got */
+      CR_FILE_NAME,     /*!< WAV filename ian't WAV :) */
+      CR_NOT_WAVE       /*!< WAV file headers are incorrect or absent */
     };
 
-    static CodecResult encode(const std::string& wav_filename);
-    static void encode(const std::vector<std::string>& wav_filenames);
+    //! Single file encode function
+    /*!
+      \param wav_filename - WAV file name
+      \return Encoding result
+      \sa CodecResult
+    */
+    CodecResult encode(const std::string &wav_filename);
+
+    void encode(const std::vector<std::string> &wav_filenames);
 
   private:
-    inline static bool ends_with(const std::string& str, const std::string& ending) {
+    RIFFHeader riff_header;
+    FMTHeader fmt_header;
+    DataHeader data_header;
+    long data_offset;
+
+    //! Fill RIFF, FMT and Data headers that are the class members
+    /*!
+      \param file - WAV file handler
+      \return File handling result
+      \sa CodecResult
+    */
+    CodecResult fill_headers(FILE *file);
+
+    inline static bool ends_with(const std::string &str, const std::string &ending) {
       if (ending.size() > str.size()) return false;
       return std::equal(ending.rbegin(), ending.rend(), str.rbegin());
     }

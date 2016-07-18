@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace wav2mp3 {
 
-  struct WAVHeader {
+  struct RIFFHeader {
     char chunkId[4]; // "RIFF" (0x52494646)
     uint32_t chunkSize;
     char format[4]; // "WAVE" (0x57415645)

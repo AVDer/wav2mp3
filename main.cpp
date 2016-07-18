@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
     filenames.emplace_back(argv[i]);
   }
 
-  wav2mp3::Encoder::encode(filenames);
+  wav2mp3::Encoder encoder;
+  encoder.encode(filenames);
 
   return 0;
 }
