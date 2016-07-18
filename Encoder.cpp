@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Encoder.h"
 
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <lame/lame.h>
@@ -52,24 +53,59 @@ namespace wav2mp3 {
       return CodecResult::CR_IF_OPEN;
     }
 
-    HandlerManager<FILE*, int (*)(FILE *)> mp3_file(
-        fopen((wav_filename.substr(0, wav_filename.size() - 3) + "mp3").c_str(), "wb"), fclose);
-    if (!mp3_file.handler_ok()) {
-      return CodecResult::CR_OF_OPEN;
-    }
-
     WAVHeader wav_header;
     bytes_read = fread(&wav_header, 1, sizeof(WAVHeader), wav_file.handler());
     if (bytes_read != sizeof(WAVHeader)) {
       return  CodecResult::CR_NOT_WAVE;
     }
+    if (strncmp(wav_header.chunkId, "RIFF", 4) != 0 || strncmp(wav_header.format, "WAVE", 4) != 0) {
+      return  CodecResult::CR_NOT_WAVE;
+    }
 
-    std::cout << "Sample rate: "<< wav_header.sampleRate << std::endl;
-    std::cout << "Channels: "<< wav_header.numChannels << std::endl;
-    std::cout << "Bits per sample: "<< wav_header.bitsPerSample << std::endl;
-    std::cout << "Format: "<< wav_header.audioFormat << std::endl;
-    auto number_of_samples = wav_header.subchunk2Size / wav_header.numChannels / (wav_header.bitsPerSample / 8);
+    bool fmt_chunk_found {false};
+    DataHeader data_header;
+    FMTHeader fmt_header;
+    while (!fmt_chunk_found && !feof(wav_file.handler())) {
+      fread(&data_header, sizeof(DataHeader), 1, wav_file.handler());
+      if (strncmp(data_header.subchunk2Id, "fmt ", 4) == 0) {
+        fseek(wav_file.handler(), ftell(wav_file.handler()) - sizeof(DataHeader), SEEK_SET);
+        fread(&fmt_header, sizeof(FMTHeader), 1, wav_file.handler());
+        fmt_chunk_found = true;
+        break;
+      } else {
+        fseek(wav_file.handler(), data_header.subchunk2Size, SEEK_CUR);
+      }
+    }
+    if (!fmt_chunk_found) {
+      return  CodecResult::CR_NOT_WAVE;
+    }
+
+    bool data_chunk_found {false};
+    while (!data_chunk_found && !feof(wav_file.handler())) {
+      fread(&data_header, sizeof(DataHeader), 1, wav_file.handler());
+      if (strncmp(data_header.subchunk2Id, "data", 4) == 0) {
+        data_chunk_found = true;
+        break;
+      } else {
+        fseek(wav_file.handler(), data_header.subchunk2Size, SEEK_CUR);
+      }
+    }
+    if (!data_chunk_found) {
+      return  CodecResult::CR_NOT_WAVE;
+    }
+
+    std::cout << "Sample rate: "<< fmt_header.sampleRate << std::endl;
+    std::cout << "Channels: "<< fmt_header.numChannels << std::endl;
+    std::cout << "Bits per sample: "<< fmt_header.bitsPerSample << std::endl;
+    std::cout << "Format: "<< fmt_header.audioFormat << std::endl;
+    auto number_of_samples = data_header.subchunk2Size / fmt_header.numChannels / (fmt_header.bitsPerSample / 8);
     std::cout << "Samples: "<< number_of_samples << std::endl;
+
+    HandlerManager<FILE*, int (*)(FILE *)> mp3_file(
+        fopen((wav_filename.substr(0, wav_filename.size() - 3) + "mp3").c_str(), "wb"), fclose);
+    if (!mp3_file.handler_ok()) {
+      return CodecResult::CR_OF_OPEN;
+    }
 
     HandlerManager<lame_t, int (*)(lame_t)> lame(lame_init(), lame_close);
     if (!lame.handler_ok()) {
@@ -77,26 +113,33 @@ namespace wav2mp3 {
     }
 
     lame_set_num_samples(lame.handler(), number_of_samples);
-    lame_set_in_samplerate(lame.handler(), wav_header.sampleRate);
-    lame_set_num_channels(lame.handler(), wav_header.numChannels);
+    lame_set_in_samplerate(lame.handler(), fmt_header.sampleRate);
+    lame_set_num_channels(lame.handler(), fmt_header.numChannels);
     lame_set_quality(lame.handler(), 5); // Good quality
-    //lame_set_out_samplerate(lame.handler(), wav_header.sampleRate);
-
-    //lame_set_mode(lame.handler(), MPEG_mode::MONO);
     lame_init_params(lame.handler());
+
+    std::cout << lame_get_brate(lame.handler()) << std::endl;
 
     int16_t wav_buffer[BUFFER_SIZE * 2];
     uint8_t mp3_buffer[BUFFER_SIZE];
 
+    const size_t sample_size = (fmt_header.numChannels == 1) ? sizeof(int16_t) : 2 * sizeof(int16_t);
+
     do {
 
-      bytes_read = fread(wav_buffer, 2 * sizeof(int16_t), BUFFER_SIZE, wav_file.handler());
+      bytes_read = fread(wav_buffer, sample_size, BUFFER_SIZE, wav_file.handler());
 
       if (bytes_read == 0) {
         bytes_to_write = lame_encode_flush(lame.handler(), mp3_buffer, BUFFER_SIZE);
       }
       else {
-        bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, bytes_read, mp3_buffer, BUFFER_SIZE);
+        if (fmt_header.numChannels == 1) {
+          bytes_to_write = lame_encode_buffer(lame.handler(), wav_buffer, nullptr, bytes_read, mp3_buffer, BUFFER_SIZE);
+        }
+        else {
+          bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, bytes_read, mp3_buffer,
+                                                          BUFFER_SIZE);
+        }
       }
 
       fwrite(mp3_buffer, bytes_to_write, 1, mp3_file.handler());

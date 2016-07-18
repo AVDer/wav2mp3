@@ -26,10 +26,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 namespace wav2mp3 {
 
   struct WAVHeader {
-    uint32_t chunkId; // "RIFF" (0x52494646)
+    char chunkId[4]; // "RIFF" (0x52494646)
     uint32_t chunkSize;
-    uint32_t format; // "WAVE" (0x57415645)
-    uint32_t subchunk1Id; // "fmt " (0x666d7420)
+    char format[4]; // "WAVE" (0x57415645)
+  };
+
+  struct FMTHeader {
+    char subchunk1Id[4]; // "fmt " (0x666d7420)
     uint32_t subchunk1Size;
     uint16_t audioFormat;
     uint16_t numChannels;
@@ -37,9 +40,13 @@ namespace wav2mp3 {
     uint32_t byteRate;
     uint16_t blockAlign;
     uint16_t bitsPerSample;
-    uint32_t subchunk2Id; // "data" (0x64617461)
+  };
+
+  struct DataHeader {
+    char subchunk2Id[4]; // "data" (0x64617461)
     uint32_t subchunk2Size;
   };
+
 
 }
 
