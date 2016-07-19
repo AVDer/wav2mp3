@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Encoder.h"
 
+#include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -27,18 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "HandlerManager.h"
 
 namespace wav2mp3 {
-
-
-  /********************************************************************************/
-
-
-  void Encoder::encode(const std::vector<std::string> &wav_filenames) {
-    for (const auto &f : wav_filenames) {
-      std::cout << f << std::endl;
-      auto status = encode(f);
-      std::cout << std::setw(30) << (status == CodecResult::CR_OK ? "OK" : "FAULT") << std::endl;
-    }
-  }
 
   /********************************************************************************/
 
@@ -60,13 +49,14 @@ namespace wav2mp3 {
     if (fill_result != CodecResult::CR_OK) {
       return fill_result;
     }
+    assert(data_offset); // Headers must be initialized
 
-    std::cout << "Sample rate: "<< fmt_header.sampleRate << std::endl;
-    std::cout << "Channels: "<< fmt_header.numChannels << std::endl;
-    std::cout << "Bits per sample: "<< fmt_header.bitsPerSample << std::endl;
-    std::cout << "Format: "<< fmt_header.audioFormat << std::endl;
+//    std::cout << "Sample rate: "<< fmt_header.sampleRate << std::endl;
+//    std::cout << "Channels: "<< fmt_header.numChannels << std::endl;
+//    std::cout << "Bits per sample: "<< fmt_header.bitsPerSample << std::endl;
+//    std::cout << "Format: "<< fmt_header.audioFormat << std::endl;
     auto number_of_samples = data_header.subchunk2Size / fmt_header.numChannels / (fmt_header.bitsPerSample / 8);
-    std::cout << "Samples: "<< number_of_samples << std::endl;
+//    std::cout << "Samples: "<< number_of_samples << std::endl;
 
     // Create output MP3 file
     HandlerManager<FILE*, int (*)(FILE *)> mp3_file(
@@ -88,7 +78,7 @@ namespace wav2mp3 {
     lame_set_quality(lame.handler(), 5); // Good quality
     lame_init_params(lame.handler());
 
-    std::cout << lame_get_brate(lame.handler()) << std::endl;
+//    std::cout << lame_get_brate(lame.handler()) << std::endl;
 
     fseek(wav_file.handler(), data_offset, SEEK_SET);
 

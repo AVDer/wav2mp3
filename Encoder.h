@@ -54,8 +54,6 @@ namespace wav2mp3 {
     */
     CodecResult encode(const std::string &wav_filename);
 
-    void encode(const std::vector<std::string> &wav_filenames);
-
   private:
     RIFFHeader riff_header;
     FMTHeader fmt_header;

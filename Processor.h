@@ -17,25 +17,34 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ********************************************************************************/
 
-#include <iostream>
+#ifndef WAV2MP3_THREAD_H
+#define WAV2MP3_THREAD_H
+
+#include <pthread.h>
+#include <string>
 #include <vector>
 
-#include "Processor.h"
+//!  Processor class
+/*!
+     Provides an encode function that takes a vector of WAV file names and converts them to MP3.
+     Encoder object is used for the conversion itself.
+*/
+class Processor {
 
-int main(int argc, char **argv) {
+public:
 
-  if (argc < 2) {
-    std::cerr << "Usage: wav2mp3 file [files]\n,where file and each of files are wav ones)" << std::endl;
-    return 1;
-  }
+  //! Encode multiple WAV files with multithreading support
+  /*!
+    \param wav_filenames - vector of WAV file names
+    \param threads_number - number of threads to use; 0 - number of threads is equal to CPU cores amount
+  */
+  void encode(const std::vector<std::string> &wav_filenames, uint32_t threads_number = 0);
+};
 
+struct ThreadParams {
+  uint32_t files_processed;
   std::vector<std::string> filenames;
-  for (uint32_t i = 1; i < argc; ++i) {
-    filenames.emplace_back(argv[i]);
-  }
+};
 
-  Processor processor;
-  processor.encode(filenames);
 
-  return 0;
-}
+#endif //WAV2MP3_THREAD_H

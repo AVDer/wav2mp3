@@ -8,10 +8,17 @@ if ( NOT LAME_FOUND )
     message(FATAL_ERROR "Package LAME required, but not found!")
 endif( NOT LAME_FOUND )
 
+set(CMAKE_THREAD_PREFER_PTHREAD)
+find_package (Threads)
+if ( NOT CMAKE_USE_PTHREADS_INIT )
+    message(FATAL_ERROR "PThread library not found!")
+endif( NOT CMAKE_USE_PTHREADS_INIT )
+
 include_directories(${LAME_INCLUDE_DIRS})
 add_definitions(${LAME_DEFINITIONS})
 
-set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h WAVHeader.h WAVHeader.cpp)
+set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h WAVHeader.h WAVHeader.cpp Processor.cpp Processor.h)
 
 add_executable(wav2mp3 ${SOURCE_FILES})
 target_link_libraries(wav2mp3 ${LAME_LIBRARIES})
+target_link_libraries (wav2mp3 ${CMAKE_THREAD_LIBS_INIT})
