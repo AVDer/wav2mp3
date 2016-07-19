@@ -20,22 +20,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <iostream>
 #include <vector>
 
+#include "Filesystem.h"
 #include "Processor.h"
 
 int main(int argc, char **argv) {
 
-  if (argc < 2) {
-    std::cerr << "Usage: wav2mp3 file [files]\n,where file and each of files are wav ones)" << std::endl;
+  if (argc != 2) {
+    std::cerr << "Usage: wav2mp3 wav_files_folder" << std::endl;
     return 1;
   }
 
-  std::vector<std::string> filenames;
-  for (uint32_t i = 1; i < argc; ++i) {
-    filenames.emplace_back(argv[i]);
+  std::vector<std::string> filenames = filesystem::get_wav_files(argv[1]);
+  for (const auto& s : filenames) {
+    std::cout << s << std::endl;
   }
 
   Processor processor;
-  processor.encode(filenames);
+  processor.encode(std::move(filenames));
 
   return 0;
 }

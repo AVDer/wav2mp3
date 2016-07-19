@@ -34,10 +34,6 @@ namespace wav2mp3 {
 
   Encoder::CodecResult Encoder::encode(const std::string &wav_filename) {
 
-    if (!ends_with(wav_filename, ".wav")) {
-      return CodecResult::CR_FILE_NAME;
-    }
-
     // Get WAV file handler
     HandlerManager<FILE*, int (*)(FILE *)> wav_file(fopen(wav_filename.c_str(), "rb"), fclose);
     if (!wav_file.handler_ok()) {

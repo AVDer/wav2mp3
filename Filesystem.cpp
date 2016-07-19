@@ -17,34 +17,38 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ********************************************************************************/
 
-#ifndef WAV2MP3_THREAD_H
-#define WAV2MP3_THREAD_H
+#include "Filesystem.h"
 
-#include <pthread.h>
-#include <string>
-#include <vector>
+namespace filesystem {
 
-//!  Processor class
-/*!
-     Provides an encode function that takes a vector of WAV file names and converts them to MP3.
-     Encoder object is used for the conversion itself.
-*/
-class Processor {
+  std::vector<std::string> get_wav_files(const std::string &directory) {
 
-public:
+    std::vector<std::string> result;
 
-  //! Encode multiple WAV files with multithreading support
-  /*!
-    \param wav_filenames - vector of WAV file names
-    \param threads_number - number of threads to use; 0 - number of threads is equal to CPU cores amount
-  */
-  void encode(std::vector<std::string> && wav_filenames, uint32_t threads_number = 0);
-};
+#ifdef WIN32
+    HANDLE dir;
+    WIN32_FIND_DATA file_data;
 
-struct ThreadParams {
-  uint32_t files_processed;
-  std::vector<std::string> filenames;
-};
+    if ((dir = FindFirstFile((directory + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE) {
+      return result;
+    }
+
+    do {
+      if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        continue;
+      }
+      if (ends_with(file_data.cFileName, ".wav")) {
+        result.emplace_back(directory + "/" + file_data.cFileName);
+      }
+    } while (FindNextFile(dir, &file_data));
+
+    FindClose(dir);
+#else
 
 
-#endif //WAV2MP3_THREAD_H
+#endif
+
+    return result;
+  }
+
+}

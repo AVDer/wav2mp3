@@ -26,10 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Encoder.h"
 
 /********************************************************************************/
-pthread_mutex_t processor_mutex;
+static pthread_mutex_t processor_mutex;
 /********************************************************************************/
 
-//! Thread function for files encoding. Files are talken one by one from the vector of filenames
+//! Thread function for files encoding. Files are taken one by one from the vector of filenames
 /*!
   \param params - pointer to ThreadParams structure containing files list and shared counter of processed ones
 */
@@ -51,8 +51,8 @@ void* encoding_thread(void* params) {
     auto status = encoder.encode(parameter->filenames.at(file_number));
 
     pthread_mutex_lock(&processor_mutex);
-    std::cout << parameter->filenames.at(file_number);
-    std::cout << std::setw(30) << (status == Encoder::CodecResult::CR_OK ? "OK" : "FAULT") << std::endl;
+    std::cout << std::setw(70) << std::left << parameter->filenames.at(file_number);
+    std::cout << std::right << (status == Encoder::CodecResult::CR_OK ? "OK" : "FAULT") << std::endl;
     pthread_mutex_unlock(&processor_mutex);
   }
   pthread_exit(nullptr);
@@ -60,7 +60,7 @@ void* encoding_thread(void* params) {
 
 /********************************************************************************/
 
-void Processor::encode(const std::vector<std::string> &wav_filenames, uint32_t threads_number/* = 0*/) {
+void Processor::encode(std::vector<std::string> && wav_filenames, uint32_t threads_number/* = 0*/) {
   if (threads_number == 0) {
     threads_number = std::thread::hardware_concurrency();
   }
