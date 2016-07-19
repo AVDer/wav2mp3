@@ -33,10 +33,10 @@ static pthread_mutex_t processor_mutex;
 /*!
   \param params - pointer to ThreadParams structure containing files list and shared counter of processed ones
 */
-void* encoding_thread(void* params) {
+void *encoding_thread(void *params) {
   using wav2mp3::Encoder;
 
-  ThreadParams *parameter = reinterpret_cast<ThreadParams*>(params);
+  ThreadParams *parameter = reinterpret_cast<ThreadParams *>(params);
   const auto files_number = parameter->filenames.size();
   Encoder encoder;
   while (parameter->files_processed < files_number) {
@@ -52,7 +52,30 @@ void* encoding_thread(void* params) {
 
     pthread_mutex_lock(&processor_mutex);
     std::cout << std::setw(70) << std::left << parameter->filenames.at(file_number);
-    std::cout << std::right << (status == Encoder::CodecResult::CR_OK ? "OK" : "FAULT") << std::endl;
+    std::cout << std::right << (status == Encoder::CodecResult::CR_OK ? "OK" : "FAULT: ");
+    switch (status) {
+      case Encoder::CodecResult::CR_OK:
+        break;
+      case Encoder::CodecResult::CR_IF_OPEN:
+        std::cout << "File can't be opened";
+        break;
+      case Encoder::CodecResult::CR_OF_OPEN:
+        std::cout << "Can't create output file";
+        break;
+      case Encoder::CodecResult::CR_LAME_INIT:
+      case Encoder::CodecResult::CR_LAME_PARAM:
+        std::cout << "Lame initialization error";
+        break;
+      case Encoder::CodecResult::CR_NOT_WAVE:
+      case Encoder::CodecResult::CR_NO_FMT:
+      case Encoder::CodecResult::CR_NO_DATA:
+        std::cout << "WAV file format error";
+        break;
+      default:
+        std::cout << "Unknown error";
+        break;
+    }
+    std::cout << std::endl;
     pthread_mutex_unlock(&processor_mutex);
   }
   pthread_exit(nullptr);
@@ -60,9 +83,12 @@ void* encoding_thread(void* params) {
 
 /********************************************************************************/
 
-void Processor::encode(std::vector<std::string> && wav_filenames, uint32_t threads_number/* = 0*/) {
+void Processor::encode(std::vector<std::string> &&wav_filenames, uint32_t threads_number/* = 0*/) {
   if (threads_number == 0) {
     threads_number = std::thread::hardware_concurrency();
+  }
+  if (threads_number == 0) {
+    threads_number = 1;
   }
   pthread_t threads[threads_number];
   ThreadParams parameters;

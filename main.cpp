@@ -31,9 +31,9 @@ int main(int argc, char **argv) {
   }
 
   std::vector<std::string> filenames = filesystem::get_wav_files(argv[1]);
-  for (const auto& s : filenames) {
-    std::cout << s << std::endl;
-  }
+//  for (const auto& s : filenames) {
+//    std::cout << s << std::endl;
+//  }
 
   Processor processor;
   processor.encode(std::move(filenames));

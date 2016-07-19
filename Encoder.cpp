@@ -72,7 +72,9 @@ namespace wav2mp3 {
     lame_set_in_samplerate(lame.handler(), fmt_header.sampleRate);
     lame_set_num_channels(lame.handler(), fmt_header.numChannels);
     lame_set_quality(lame.handler(), 5); // Good quality
-    lame_init_params(lame.handler());
+    if (lame_init_params(lame.handler()) == -1) {
+      return CodecResult::CR_LAME_PARAM;
+    }
 
 //    std::cout << lame_get_brate(lame.handler()) << std::endl;
 
@@ -137,8 +139,9 @@ namespace wav2mp3 {
       }
     }
     if (!fmt_chunk_found) {
-      return  CodecResult::CR_NOT_WAVE;
+      return  CodecResult::CR_NO_FMT;
     }
+    fseek(file, ftell(file) - sizeof(FMTHeader) + fmt_header.subchunk1Size + 8, SEEK_SET);
 
     bool data_chunk_found {false};
     while (!data_chunk_found && !feof(file)) {
@@ -152,7 +155,7 @@ namespace wav2mp3 {
       }
     }
     if (!data_chunk_found) {
-      return  CodecResult::CR_NOT_WAVE;
+      return  CodecResult::CR_NO_DATA;
     }
   }
 

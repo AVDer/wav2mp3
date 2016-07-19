@@ -19,6 +19,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "Filesystem.h"
 
+#ifdef WIN32
+
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
+
+#include "HandlerManager.h"
+
 namespace filesystem {
 
   std::vector<std::string> get_wav_files(const std::string &directory) {
@@ -26,6 +35,7 @@ namespace filesystem {
     std::vector<std::string> result;
 
 #ifdef WIN32
+
     HANDLE dir;
     WIN32_FIND_DATA file_data;
 
@@ -37,14 +47,32 @@ namespace filesystem {
       if (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
         continue;
       }
-      if (ends_with(file_data.cFileName, ".wav")) {
+      if (ends_with(file_data.cFileName, ".wav") || ends_with(file_data.cFileName, ".WAV")) {
         result.emplace_back(directory + "/" + file_data.cFileName);
       }
     } while (FindNextFile(dir, &file_data));
 
     FindClose(dir);
+
 #else
 
+    dirent *ent;
+    struct stat file_status;
+
+    HandlerManager<DIR*, int(*)(DIR*)> dir(opendir(directory.c_str()), closedir);
+
+    while ((ent = readdir(dir.handler())) != NULL) {
+      const std::string filename = ent->d_name;
+      const std::string full_filename = directory + "/" + filename;
+
+      if (filename[0] == '.' || stat(full_filename.c_str(), &file_status) == -1 || file_status.st_mode & S_IFDIR) {
+        continue;
+      }
+
+      if (ends_with(filename, ".wav") || ends_with(filename, ".WAV")) {
+        result.emplace_back(full_filename);
+      }
+    }
 
 #endif
 

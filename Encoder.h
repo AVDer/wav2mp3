@@ -42,8 +42,10 @@ namespace wav2mp3 {
       CR_IF_OPEN,       /*!< Error while opening WAV file */
       CR_OF_OPEN,       /*!< MP3 file can't be created */
       CR_LAME_INIT,     /*!< Lame handler can't be got */
-      CR_FILE_NAME,     /*!< WAV filename ian't WAV :) */
-      CR_NOT_WAVE       /*!< WAV file headers are incorrect or absent */
+      CR_LAME_PARAM,    /*!< Lame can't be initialized */
+      CR_NOT_WAVE,      /*!< WAV file headers are incorrect or absent */
+      CR_NO_FMT,        /*!< FMT section not found */
+      CR_NO_DATA        /*!< DATA section not found */
     };
 
     //! Single file encode function
