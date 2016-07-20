@@ -80,16 +80,24 @@ namespace wav2mp3 {
 
     fseek(wav_file.handler(), data_offset, SEEK_SET);
 
-    const size_t sample_size = (fmt_header.numChannels == 1) ? sizeof(int16_t) : 2 * sizeof(int16_t);
     int16_t wav_buffer[BUFFER_SIZE * 2];
+    int8_t wav_1b_buffer[BUFFER_SIZE];
     uint8_t mp3_buffer[BUFFER_SIZE];
     int samples_read {};
     int bytes_to_write {};
 
     // Perform the encoding
     do {
-
-      samples_read = fread(wav_buffer, sample_size, BUFFER_SIZE, wav_file.handler());
+      if (fmt_header.bitsPerSample == 8) {
+        samples_read = fread(wav_1b_buffer, 1, BUFFER_SIZE, wav_file.handler());
+        for (uint32_t i = 0; i < BUFFER_SIZE; ++i) {
+          wav_buffer[i] = static_cast<int16_t>((static_cast<int16_t>(wav_1b_buffer[i]) - 0x80) *256);
+        }
+      }
+      else if (fmt_header.bitsPerSample == 16) {
+        const size_t sample_size = (fmt_header.numChannels == 1) ? sizeof(int16_t) : 2 * sizeof(int16_t);
+        samples_read = fread(wav_buffer, sample_size, BUFFER_SIZE, wav_file.handler());
+      }
 
       if (samples_read == 0) {
         bytes_to_write = lame_encode_flush(lame.handler(), mp3_buffer, BUFFER_SIZE);
@@ -99,7 +107,7 @@ namespace wav2mp3 {
           bytes_to_write = lame_encode_buffer(lame.handler(), wav_buffer, nullptr, samples_read, mp3_buffer, BUFFER_SIZE);
         }
         else {
-          bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, samples_read, mp3_buffer,
+          bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, samples_read / 2, mp3_buffer,
                                                           BUFFER_SIZE);
         }
       }
