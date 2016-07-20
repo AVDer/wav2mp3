@@ -51,8 +51,19 @@ namespace wav2mp3 {
 //    std::cout << "Channels: "<< fmt_header.numChannels << std::endl;
 //    std::cout << "Bits per sample: "<< fmt_header.bitsPerSample << std::endl;
 //    std::cout << "Format: "<< fmt_header.audioFormat << std::endl;
-    auto number_of_samples = data_header.subchunk2Size / fmt_header.numChannels / (fmt_header.bitsPerSample / 8);
 //    std::cout << "Samples: "<< number_of_samples << std::endl;
+
+    if (fmt_header.audioFormat != 1) {
+      return CodecResult::CR_FORMAT;
+    }
+
+    if (fmt_header.bitsPerSample != 8 &&
+        fmt_header.bitsPerSample != 16 &&
+        fmt_header.bitsPerSample != 32) {
+      return CodecResult::CR_BITRATE;
+    }
+
+    auto number_of_samples = data_header.subchunk2Size / fmt_header.numChannels / (fmt_header.bitsPerSample / 8);
 
     // Create output MP3 file
     HandlerManager<FILE*, int (*)(FILE *)> mp3_file(
@@ -82,6 +93,7 @@ namespace wav2mp3 {
 
     int16_t wav_buffer[BUFFER_SIZE * 2];
     int8_t wav_1b_buffer[BUFFER_SIZE];
+    int32_t wav_4b_buffer[BUFFER_SIZE];
     uint8_t mp3_buffer[BUFFER_SIZE];
     int samples_read {};
     int bytes_to_write {};
@@ -90,13 +102,19 @@ namespace wav2mp3 {
     do {
       if (fmt_header.bitsPerSample == 8) {
         samples_read = fread(wav_1b_buffer, 1, BUFFER_SIZE, wav_file.handler());
-        for (uint32_t i = 0; i < BUFFER_SIZE; ++i) {
+        for (size_t i = 0; i < BUFFER_SIZE; ++i) {
           wav_buffer[i] = static_cast<int16_t>((static_cast<int16_t>(wav_1b_buffer[i]) - 0x80) *256);
         }
       }
       else if (fmt_header.bitsPerSample == 16) {
         const size_t sample_size = (fmt_header.numChannels == 1) ? sizeof(int16_t) : 2 * sizeof(int16_t);
         samples_read = fread(wav_buffer, sample_size, BUFFER_SIZE, wav_file.handler());
+      }
+      else if (fmt_header.bitsPerSample == 32) {
+        samples_read = fread(wav_4b_buffer, 4, BUFFER_SIZE, wav_file.handler());
+        for (size_t i = 0; i < BUFFER_SIZE; ++i) {
+          wav_buffer[i] = static_cast<int16_t>(wav_4b_buffer[i] / 65536);
+        }
       }
 
       if (samples_read == 0) {

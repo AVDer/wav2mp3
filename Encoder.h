@@ -40,6 +40,8 @@ namespace wav2mp3 {
     enum class CodecResult {
       CR_OK,            /*!< No errors in encoding process */
       CR_IF_OPEN,       /*!< Error while opening WAV file */
+      CR_FORMAT,        /*!< Encoding found. Not PCM */
+      CR_BITRATE,       /*!< Unsupported bitrate */
       CR_OF_OPEN,       /*!< MP3 file can't be created */
       CR_LAME_INIT,     /*!< Lame handler can't be got */
       CR_LAME_PARAM,    /*!< Lame can't be initialized */

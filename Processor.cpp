@@ -60,6 +60,12 @@ void *encoding_thread(void *params) {
       case Encoder::CodecResult::CR_IF_OPEN:
         std::cout << "File can't be opened";
         break;
+      case Encoder::CodecResult::CR_FORMAT:
+        std::cout << "Encoding detected. Only PCM format is accepted";
+        break;
+      case Encoder::CodecResult::CR_BITRATE:
+        std::cout << "Sorry, bit rate not supported";
+        break;
       case Encoder::CodecResult::CR_OF_OPEN:
         std::cout << "Can't create output file";
         break;
