@@ -50,8 +50,10 @@ public:
   ThreadResult encode(std::vector<std::string> &&wav_filenames, uint32_t threads_number = 0);
 };
 
+//! Thread parameters structure. Is shared among the threads
 struct ThreadParams {
   uint32_t files_processed;
+  uint32_t success_number;
   std::vector<std::string> filenames;
 };
 

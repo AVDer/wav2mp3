@@ -54,14 +54,14 @@ void *encoding_thread(void *params) {
     pthread_mutex_lock(&processor_mutex);
     std::cout << std::setw(70) << std::left << parameter->filenames.at(file_number);
     std::cout << std::right << (status == Encoder::CodecResult::CR_OK ? "OK" : "FAULT: ");
+    if (status == Encoder::CodecResult::CR_OK) {
+      ++parameter->success_number;
+    }
     switch (status) {
       case Encoder::CodecResult::CR_OK:
         break;
       case Encoder::CodecResult::CR_IF_OPEN:
         std::cout << "File can't be opened";
-        break;
-      case Encoder::CodecResult::CR_FORMAT:
-        std::cout << "Encoding detected. Only PCM format is accepted";
         break;
       case Encoder::CodecResult::CR_BITRATE:
         std::cout << "Sorry, bit rate not supported";
@@ -101,6 +101,7 @@ Processor::ThreadResult Processor::encode(std::vector<std::string> &&wav_filenam
   ThreadParams parameters;
   parameters.filenames = std::move(wav_filenames);
   parameters.files_processed = 0;
+  parameters.success_number = 0;
 
   if (pthread_mutex_init(&processor_mutex, nullptr) != 0) {
     return ThreadResult::TR_MUTEX_ERROR;
@@ -131,6 +132,10 @@ Processor::ThreadResult Processor::encode(std::vector<std::string> &&wav_filenam
       return ThreadResult::TR_THR_JOIN;
     }
   }
+
+  std::cout << "Processed: " << parameters.filenames.size() << " files\n";
+  std::cout << "Success: " << parameters.success_number
+            << "; Fail: " << parameters.filenames.size() - parameters.success_number << std::endl;
 
   return ThreadResult::TR_OK;
 }

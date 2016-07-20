@@ -20,7 +20,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "Filesystem.h"
 
 #ifdef WIN32
-
+#include <windef.h>
+#include <windows.h>
 #else
 #include <dirent.h>
 #include <sys/stat.h>

@@ -17,7 +17,7 @@ endif( NOT CMAKE_USE_PTHREADS_INIT )
 include_directories(${LAME_INCLUDE_DIRS})
 add_definitions(${LAME_DEFINITIONS})
 
-set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h WAVHeader.h WAVHeader.cpp Processor.cpp Processor.h Filesystem.cpp Filesystem.h)
+set(SOURCE_FILES main.cpp Encoder.cpp Encoder.h HandlerManager.h WAVHeader.h Processor.cpp Processor.h Filesystem.cpp Filesystem.h)
 
 add_executable(wav2mp3 ${SOURCE_FILES})
 target_link_libraries(wav2mp3 ${LAME_LIBRARIES})

@@ -34,6 +34,14 @@ namespace wav2mp3 {
 
   Encoder::CodecResult Encoder::encode(const std::string &wav_filename) {
 
+    /* 1. Open WAV file
+     * 2. Fill WAV file headers
+     * 3. Create output MPS file
+     * 4. Create Lame object and initialize it
+     * 5. Convert data basing on bitrate
+     */
+
+
     // Get WAV file handler
     HandlerManager<FILE*, int (*)(FILE *)> wav_file(fopen(wav_filename.c_str(), "rb"), fclose);
     if (!wav_file.handler_ok()) {
@@ -52,10 +60,6 @@ namespace wav2mp3 {
 //    std::cout << "Bits per sample: "<< fmt_header.bitsPerSample << std::endl;
 //    std::cout << "Format: "<< fmt_header.audioFormat << std::endl;
 //    std::cout << "Samples: "<< number_of_samples << std::endl;
-
-    if (fmt_header.audioFormat != 1) {
-      return CodecResult::CR_FORMAT;
-    }
 
     if (fmt_header.bitsPerSample != 8 &&
         fmt_header.bitsPerSample != 16 &&
@@ -82,17 +86,18 @@ namespace wav2mp3 {
     lame_set_num_samples(lame.handler(), number_of_samples);
     lame_set_in_samplerate(lame.handler(), fmt_header.sampleRate);
     lame_set_num_channels(lame.handler(), fmt_header.numChannels);
+    if (fmt_header.numChannels == 1) {
+      lame_set_mode(lame.handler(), MPEG_mode::MONO);
+    }
     lame_set_quality(lame.handler(), 5); // Good quality
     if (lame_init_params(lame.handler()) == -1) {
       return CodecResult::CR_LAME_PARAM;
     }
 
-//    std::cout << lame_get_brate(lame.handler()) << std::endl;
-
     fseek(wav_file.handler(), data_offset, SEEK_SET);
 
-    int16_t wav_buffer[BUFFER_SIZE * 2];
     int8_t wav_1b_buffer[BUFFER_SIZE];
+    int16_t wav_2b_buffer[BUFFER_SIZE];
     int32_t wav_4b_buffer[BUFFER_SIZE];
     uint8_t mp3_buffer[BUFFER_SIZE];
     int samples_read {};
@@ -103,17 +108,16 @@ namespace wav2mp3 {
       if (fmt_header.bitsPerSample == 8) {
         samples_read = fread(wav_1b_buffer, 1, BUFFER_SIZE, wav_file.handler());
         for (size_t i = 0; i < BUFFER_SIZE; ++i) {
-          wav_buffer[i] = static_cast<int16_t>((static_cast<int16_t>(wav_1b_buffer[i]) - 0x80) *256);
+          wav_2b_buffer[i] = static_cast<int16_t>((static_cast<int16_t>(wav_1b_buffer[i]) - 0x80) *256);
         }
       }
       else if (fmt_header.bitsPerSample == 16) {
-        const size_t sample_size = (fmt_header.numChannels == 1) ? sizeof(int16_t) : 2 * sizeof(int16_t);
-        samples_read = fread(wav_buffer, sample_size, BUFFER_SIZE, wav_file.handler());
+        samples_read = fread(wav_2b_buffer, 2, BUFFER_SIZE, wav_file.handler());
       }
       else if (fmt_header.bitsPerSample == 32) {
         samples_read = fread(wav_4b_buffer, 4, BUFFER_SIZE, wav_file.handler());
         for (size_t i = 0; i < BUFFER_SIZE; ++i) {
-          wav_buffer[i] = static_cast<int16_t>(wav_4b_buffer[i] / 65536);
+          wav_2b_buffer[i] = static_cast<int16_t>(wav_4b_buffer[i] / 65536);
         }
       }
 
@@ -122,10 +126,10 @@ namespace wav2mp3 {
       }
       else {
         if (fmt_header.numChannels == 1) {
-          bytes_to_write = lame_encode_buffer(lame.handler(), wav_buffer, nullptr, samples_read, mp3_buffer, BUFFER_SIZE);
+          bytes_to_write = lame_encode_buffer(lame.handler(), wav_2b_buffer, nullptr, samples_read, mp3_buffer, BUFFER_SIZE);
         }
         else {
-          bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_buffer, samples_read / 2, mp3_buffer,
+          bytes_to_write = lame_encode_buffer_interleaved(lame.handler(), wav_2b_buffer, samples_read / 2, mp3_buffer,
                                                           BUFFER_SIZE);
         }
       }
@@ -152,6 +156,7 @@ namespace wav2mp3 {
       return  CodecResult::CR_NOT_WAVE;
     }
 
+
     bool fmt_chunk_found {false};
     while (!fmt_chunk_found && !feof(file)) {
       fread(&data_header, sizeof(DataHeader), 1, file);
@@ -168,6 +173,7 @@ namespace wav2mp3 {
       return  CodecResult::CR_NO_FMT;
     }
     fseek(file, ftell(file) - sizeof(FMTHeader) + fmt_header.subchunk1Size + 8, SEEK_SET);
+
 
     bool data_chunk_found {false};
     while (!data_chunk_found && !feof(file)) {

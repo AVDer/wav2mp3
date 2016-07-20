@@ -33,14 +33,16 @@ namespace wav2mp3 {
        Class provides functions for basic WAV file parsing and it's encoding to MP3 format with pre-defined quality
   */
   class Encoder {
-    static const size_t BUFFER_SIZE{8192};
+
+    //! Buffer size for data conversion
+    static const size_t BUFFER_SIZE {8192};
+
   public:
 
     //! Conversion errors codes
     enum class CodecResult {
       CR_OK,            /*!< No errors in encoding process */
       CR_IF_OPEN,       /*!< Error while opening WAV file */
-      CR_FORMAT,        /*!< Encoding found. Not PCM */
       CR_BITRATE,       /*!< Unsupported bitrate */
       CR_OF_OPEN,       /*!< MP3 file can't be created */
       CR_LAME_INIT,     /*!< Lame handler can't be got */
@@ -59,12 +61,13 @@ namespace wav2mp3 {
     CodecResult encode(const std::string &wav_filename);
 
   private:
+
     RIFFHeader riff_header;
     FMTHeader fmt_header;
     DataHeader data_header;
     long data_offset;
 
-    //! Fill RIFF, FMT and Data headers that are the class members
+    //! Fill RIFF, FMT and Data headers that are the class members. Must be called after input file opened.
     /*!
       \param file - WAV file handler
       \return File handling result
@@ -75,6 +78,5 @@ namespace wav2mp3 {
   };
 
 }
-
 
 #endif //WAV2MP3_ENCODER_H

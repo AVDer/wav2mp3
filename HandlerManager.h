@@ -22,13 +22,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <functional>
 
+//!  Handlers manager class
+/*!
+     Class implements RAAI approach to call close function for the specified handler
+*/
 template <typename H, class F>
 class HandlerManager {
 public:
   HandlerManager(H handler, F close_function):
       handler_(handler),
       close_function_(close_function) {
-
   }
 
   H& handler() {

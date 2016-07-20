@@ -25,6 +25,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace filesystem {
 
+  //! Get vector of WAV files in the specified folder
+  /*!
+    \param directory - Directory to search files in
+    \return Vector of found WAV files
+  */
   std::vector<std::string> get_wav_files(const std::string &directory);
 
   inline static bool ends_with(const std::string &str, const std::string &ending) {
