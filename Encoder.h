@@ -36,7 +36,7 @@ namespace wav2mp3 {
     static const size_t BUFFER_SIZE{8192};
   public:
 
-    //! Errors codes
+    //! Conversion errors codes
     enum class CodecResult {
       CR_OK,            /*!< No errors in encoding process */
       CR_IF_OPEN,       /*!< Error while opening WAV file */

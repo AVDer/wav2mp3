@@ -36,10 +36,10 @@ namespace filesystem {
 
 #ifdef WIN32
 
-    HANDLE dir;
     WIN32_FIND_DATA file_data;
+    HandlerManager<HANDLE, WINBOOL(*)(HANDLE)> dir(FindFirstFile((directory + "/*").c_str(), &file_data), FindClose);
 
-    if ((dir = FindFirstFile((directory + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE) {
+    if (dir.handler() == INVALID_HANDLE_VALUE) {
       return result;
     }
 
@@ -50,9 +50,7 @@ namespace filesystem {
       if (ends_with(file_data.cFileName, ".wav") || ends_with(file_data.cFileName, ".WAV")) {
         result.emplace_back(directory + "/" + file_data.cFileName);
       }
-    } while (FindNextFile(dir, &file_data));
-
-    FindClose(dir);
+    } while (FindNextFile(dir.handler(), &file_data));
 
 #else
 

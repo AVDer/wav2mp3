@@ -36,7 +36,29 @@ int main(int argc, char **argv) {
 //  }
 
   Processor processor;
-  processor.encode(std::move(filenames));
+  auto result = processor.encode(std::move(filenames));
+  if (result != Processor::ThreadResult::TR_OK) {
+    std::cerr << "Error: ";
+    switch (result) {
+      case Processor::ThreadResult::TR_MUTEX_ERROR:
+        std::cerr << "Mutex initialization error";
+        break;
+      case Processor::ThreadResult::TR_ATTR_ERROR:
+        std::cerr << "Thread attributes initialization error";
+        break;
+      case Processor::ThreadResult::TR_THR_CREATE:
+        std::cerr << "Conversion thread can't be created";
+        break;
+      case Processor::ThreadResult::TR_THR_JOIN:
+        std::cerr << "Conversion thread join error";
+        break;
+      default:
+        std::cerr << "Unknown error";
+        break;
+    }
+    std::cerr << std::endl;
+    return 1;
+  }
 
   return 0;
 }

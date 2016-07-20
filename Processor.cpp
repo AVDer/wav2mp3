@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <thread>
 
 #include "Encoder.h"
+#include "HandlerManager.h"
 
 /********************************************************************************/
 static pthread_mutex_t processor_mutex;
@@ -71,9 +72,9 @@ void *encoding_thread(void *params) {
       case Encoder::CodecResult::CR_NO_DATA:
         std::cout << "WAV file format error";
         break;
-      default:
-        std::cout << "Unknown error";
-        break;
+//      default:
+//        std::cout << "Unknown error";
+//        break;
     }
     std::cout << std::endl;
     pthread_mutex_unlock(&processor_mutex);
@@ -83,7 +84,7 @@ void *encoding_thread(void *params) {
 
 /********************************************************************************/
 
-void Processor::encode(std::vector<std::string> &&wav_filenames, uint32_t threads_number/* = 0*/) {
+Processor::ThreadResult Processor::encode(std::vector<std::string> &&wav_filenames, uint32_t threads_number/* = 0*/) {
   if (threads_number == 0) {
     threads_number = std::thread::hardware_concurrency();
   }
@@ -95,14 +96,35 @@ void Processor::encode(std::vector<std::string> &&wav_filenames, uint32_t thread
   parameters.filenames = std::move(wav_filenames);
   parameters.files_processed = 0;
 
-  pthread_mutex_init(&processor_mutex, nullptr);
-
-  for (uint32_t thr_index = 0; thr_index < threads_number; ++thr_index) {
-    pthread_create(&threads[thr_index], nullptr, encoding_thread, &parameters);
-  }
-  for (uint32_t thr_index = 0; thr_index < threads_number; ++thr_index) {
-    pthread_join(threads[thr_index], nullptr);
+  if (pthread_mutex_init(&processor_mutex, nullptr) != 0) {
+    return ThreadResult::TR_MUTEX_ERROR;
   }
 
-  pthread_mutex_destroy(&processor_mutex);
+  HandlerManager<pthread_mutex_t*, int(*)(pthread_mutex_t*)> mutex_guard(&processor_mutex, pthread_mutex_destroy);
+
+  pthread_attr_t thread_attribute;
+
+  if (pthread_attr_init(&thread_attribute) != 0) {
+    return ThreadResult::TR_ATTR_ERROR;
+  }
+
+  HandlerManager<pthread_attr_t*, int(*)(pthread_attr_t*)> attr_guard(&thread_attribute, pthread_attr_destroy);
+
+  if (pthread_attr_setdetachstate(&thread_attribute, PTHREAD_CREATE_JOINABLE) != 0) {
+    return ThreadResult::TR_ATTR_ERROR;
+  }
+
+  for (uint32_t thr_index = 0; thr_index < threads_number; ++thr_index) {
+    if (pthread_create(&threads[thr_index], &thread_attribute, encoding_thread, &parameters) != 0) {
+      return ThreadResult::TR_THR_CREATE;
+    }
+  }
+
+  for (uint32_t thr_index = 0; thr_index < threads_number; ++thr_index) {
+    if (pthread_join(threads[thr_index], nullptr) != 0) {
+      return ThreadResult::TR_THR_JOIN;
+    }
+  }
+
+  return ThreadResult::TR_OK;
 }

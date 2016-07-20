@@ -33,12 +33,21 @@ class Processor {
 
 public:
 
+  //! Thread creating errors codes
+  enum class ThreadResult {
+    TR_OK,            /*!< No errors occured */
+    TR_MUTEX_ERROR,   /*!< Mutex can't be initialized */
+    TR_ATTR_ERROR,    /*!< Thread attributes can't be initialized */
+    TR_THR_CREATE,    /*!< Thread create error */
+    TR_THR_JOIN       /*!< Thread join error */
+  };
+
   //! Encode multiple WAV files with multithreading support
   /*!
     \param wav_filenames - vector of WAV file names
     \param threads_number - number of threads to use; 0 - number of threads is equal to CPU cores amount
   */
-  void encode(std::vector<std::string> && wav_filenames, uint32_t threads_number = 0);
+  ThreadResult encode(std::vector<std::string> &&wav_filenames, uint32_t threads_number = 0);
 };
 
 struct ThreadParams {
